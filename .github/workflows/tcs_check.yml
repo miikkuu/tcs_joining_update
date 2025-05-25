@@ -29,6 +29,7 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
+        # Install required dependencies
         sudo apt-get install -y --no-install-recommends \
             libnss3 \
             libnspr4 \
@@ -45,30 +46,42 @@ jobs:
             libasound2t64 \
             libatspi2.0-0 \
             libxshmfence1 \
-            libx264-163 \
             libx11-xcb1 \
             libxcb-dri3-0 \
-            libxcomposite1 \
             libxcursor1 \
-            libxdamage1 \
             libxi6 \
             libxtst6 \
-            libnss3 \
-            libcups2 \
             libxss1 \
+            libgtk-3-0 \
+            libpango-1.0-0 \
+            libcairo2 \
+            libdbus-1-3 \
+            libx11-6 \
+            libxcb1 \
+            libxext6 \
+            libxrender1 \
+            libappindicator3-1 \
+            wget \
+            gnupg2 \
+            software-properties-common \
+            libnss3-tools \
+            libgdk-pixbuf2.0-0 \
+            libgtk-3-0 \
+            libxss1 \
+            xvfb \
+            libxcomposite1 \
+            libxtst6 \
             libxrandr2 \
             libasound2t64 \
             libatk1.0-0 \
             libatk-bridge2.0-0 \
-            libgtk-3-0 \
-            libgbm1 \
-            libxcb-dri3-0 \
+            libcups2 \
+            libdrm2 \
+            libxkbcommon0 \
             libxcomposite1 \
             libxdamage1 \
             libxfixes3 \
-            libxkbcommon0 \
             libxrandr2 \
-            libdrm2 \
             libgbm1 \
             libpango-1.0-0 \
             libcairo2 \
@@ -91,7 +104,6 @@ jobs:
             libnspr4 \
             libatspi2.0-0 \
             libxshmfence1 \
-            libx264-163 \
             libappindicator3-1 \
             libatk-bridge2.0-0 \
             libgtk-3-0 \
@@ -101,6 +113,11 @@ jobs:
             wget \
             gnupg2 \
             software-properties-common
+
+        # Install libx264 from universe repository
+        sudo add-apt-repository -y universe
+        sudo apt-get update
+        sudo apt-get install -y libx264-dev
     
     - name: Install Python dependencies
       run: |
