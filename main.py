@@ -20,7 +20,7 @@ load_dotenv()
 # Constants
 DEFAULT_SCRIPT_TIMEOUT = 80
 SCREENSHOT_DIR = 'screenshots'
-LOG_FILE = 'tcs_login.log'
+LOG_FILE = 'main.log'
 USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
 
 # Configuration from environment variables
@@ -55,7 +55,7 @@ console_handler.setFormatter(log_formatter)
 logger.addHandler(console_handler)
 
 # Add file handler with rotation
-log_file = log_dir / 'tcs_login.log'
+log_file = log_dir / 'main.log'
 file_handler = logging.handlers.RotatingFileHandler(
     log_file, maxBytes=5*1024*1024, backupCount=3, encoding='utf-8'
 )

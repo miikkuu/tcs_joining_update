@@ -121,7 +121,7 @@ This solution handles all the tedious parts of the TCS NextStep portal, includin
 ### Running the Script
 
 ```bash
-python tcs_login.py
+python main.py
 ```
 
 ### Scheduling Automated Runs
@@ -173,7 +173,7 @@ The application maintains detailed logs in the `logs/` directory. Here's how to 
 2. **View logs in real-time**:
    ```bash
    # Main application logs
-   tail -f logs/tcs_login.log
+   tail -f logs/main.log
    
    # CAPTCHA solving logs
    tail -f logs/gemini_captcha_solver.log
@@ -184,13 +184,13 @@ The application maintains detailed logs in the `logs/` directory. Here's how to 
 
 ### Log Files
 
-- `tcs_login.log`: Main application logs including login attempts and status checks
+- `main.log`: Main application logs including login attempts and status checks
 - `gemini_captcha_solver.log`: Detailed logs for CAPTCHA solving process
 - `scheduler.log`: Scheduler execution logs and script run history
 
 ### Log Rotation
 
-Logs are automatically rotated when they reach 5MB (2MB for CAPTCHA logs), keeping up to 3 backup files. Old logs are compressed and numbered (e.g., `tcs_login.log.1.gz`).
+Logs are automatically rotated when they reach 5MB (2MB for CAPTCHA logs), keeping up to 3 backup files. Old logs are compressed and numbered (e.g., `main.log.1.gz`).
 
 ### Restarting the Scheduler
 

@@ -12,7 +12,7 @@ from pathlib import Path
 # Configuration
 SCRIPT_DIR = Path(__file__).parent.absolute()
 VENV_PYTHON = SCRIPT_DIR / "venv" / "bin" / "python"
-TCS_SCRIPT = SCRIPT_DIR / "tcs_login.py"
+TCS_SCRIPT = SCRIPT_DIR / "main.py"
 LOG_DIR = SCRIPT_DIR / "logs"
 LOG_FILE = LOG_DIR / "scheduler.log"
 

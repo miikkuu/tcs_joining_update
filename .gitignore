@@ -31,6 +31,10 @@ env/
 logs/
 *.log
 
+# Temporary files
+captcha_deciphered.txt
+otp.txt
+
 # Screenshots
 screenshots/
 
@@ -43,3 +47,5 @@ screenshots/
 # System Files
 .DS_Store
 Thumbs.db
+
+
