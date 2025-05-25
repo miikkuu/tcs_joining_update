@@ -15,22 +15,19 @@ jobs:
   check-joining-letter:
     name: Check TCS Joining Letter
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright/python:v1.42.0-jammy
+      options: --user root
     timeout-minutes: 15
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Set up Python ${{ env.PYTHON_VERSION }}
+    - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-    
-    - name: Install Playwright
-      uses: microsoft/playwright-github-action@v1
-      with:
-        install-deps: true
-        browsers: chromium
     
     - name: Install Python dependencies
       run: |
