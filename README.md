@@ -70,8 +70,8 @@ This solution handles all the tedious parts of the TCS NextStep portal, includin
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/tcs-nextstep-automation.git
-   cd tcs-nextstep-automation
+   git clone https://github.com/miikkuu/tcs_joining_update_notifier.git
+   cd tcs_joining_update_notifier
    ```
 
 2. **Create and activate virtual environment**
