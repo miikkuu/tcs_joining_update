@@ -1,5 +1,4 @@
 playwright==1.42.0
-playwright-chromium==1.42.0
 google-generativeai==0.3.2
 Pillow==10.2.0
 python-dotenv==1.0.1
