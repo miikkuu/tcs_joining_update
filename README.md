@@ -1,242 +1,109 @@
-# TCS NextStep Automation - Joining Letter(JL) Notifier
+# TCS NextStep Automation - Joining Letter Notifier
 
-🚀 **Stop Manually Checking for Your Joining Letter!**
+🚀 **Automate Your TCS Joining Letter Check**
 
-Tired of constantly logging into the TCS NextStep portal to check for your joining letter? This automation tool is specifically designed for TCS recruits who are eagerly waiting for their joining letters and want to be notified the moment there's an update.
+Tired of constantly checking the TCS NextStep portal for your joining letter? This tool automates the entire process and notifies you the moment there's an update.
 
-### Why Use This Tool?
-- 🤖 **Automated Checks**: No more manual logins - runs automatically in the background
-- 🔔 **Instant Notifications**: Get immediate alerts when your joining letter is available or if not yet.
-- ⏰ **24/7 Monitoring**: Checks the portal even when you're sleeping or busy
-- 📱 **Peace of Mind**: Never miss an update about your joining status
+## ✨ Key Features
 
-This solution handles all the tedious parts of the TCS NextStep portal, including login, CAPTCHA solving, and OTP verification, so you don't have to!
+- **Automated Portal Checks**: Runs on schedule without manual intervention
+- **Instant Notifications**: Get email alerts for status updates
+- **Cloud-Based**: Runs on GitHub Actions (24/7 availability)
+- **Secure**: Uses GitHub Secrets to protect your credentials
+- **Open Source**: Free to use and modify
 
-## ✨ Features
-
-- **Automated Login**: Handles TCS NextStep portal login process
-- **CAPTCHA Solving**: Integrates with Gemini AI for automated CAPTCHA solving
-- **OTP Handling**: Automatically retrieves and enters OTP from Gmail
-- **Scheduled Checks**: Run automated checks at specified times
-- **Error Handling**: Comprehensive error handling and logging
-- **Headless Mode**: Supports both headless and visible browser modes
-
-## 🚀 Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- Python 3.8+
-- Playwright with Chromium browser
-- [Google Gemini API Key](#obtaining-gemini-api-key)
-- [Gmail account with App Password](#setting-up-gmail-app-password)
+- GitHub account (for cloud automation)
+- Gmail account (for notifications)
+- [Google Gemini API Key](#obtaining-gemini-api-key) (free tier available)
 
-## 🔑 Obtaining Required Credentials
+### 1. Fork & Set Up
 
-### Setting Up Gmail App Password
+1. **Fork** this repository
+2. **Clone** your forked repository
+3. **Set up GitHub Secrets**:
+   ```
+   TCS_EMAIL=your_tcs_email@example.com
+   GMAIL_EMAIL=your_email@gmail.com
+   GMAIL_APP_PASSWORD=your_16_digit_app_password
+   GEMINI_API_KEY=your_gemini_api_key
+   ```
 
-1. **Enable 2-Step Verification** (if not already enabled):
-   - Go to your [Google Account](https://myaccount.google.com/)
-   - Navigate to "Security"
-   - Under "Signing in to Google," select **2-Step Verification**
-   - Follow the steps to enable it
+### 2. Run Your First Check
 
-2. **Create an App Password**:
+1. Go to **Actions** tab
+2. Select **TCS Joining Letter Check**
+3. Click **Run workflow**
+
+### 3. Get Notified
+
+- Checks run automatically at 12 PM & 8 PM IST
+- Receive email notifications for any updates
+- View detailed logs in GitHub Actions
+
+## 🔑 Setup Guide
+
+### GitHub Secrets Setup
+
+1. Go to your repository's **Settings** > **Secrets and variables** > **Actions**
+2. Click **New repository secret** and add:
+   - `TCS_EMAIL`: Your TCS login email
+   - `GMAIL_EMAIL`: Your Gmail address
+   - `GMAIL_APP_PASSWORD`: [Gmail App Password](#gmail-app-password)
+   - `GEMINI_API_KEY`: [Google Gemini API Key](#gemini-api-key)
+
+### Gmail App Password
+
+1. Enable 2-Step Verification on your Google Account
+2. Generate an App Password:
    - Go to [App Passwords](https://myaccount.google.com/apppasswords)
-   - Select "Mail" as the app
-   - Select "Other (Custom name)" as the device
-   - Enter a name (e.g., "TCS Auto Login")
-   - Click "Generate"
-   - Copy the 16-character password (you'll use this as `GMAIL_APP_PASSWORD`)
+   - Select "Mail" and "Other (Custom name)"
+   - Name it "TCS Auto Check"
+   - Copy the 16-digit password
 
-### Obtaining Gemini API Key
+### Gemini API Key
 
-1. **Go to Google AI Studio**:
-   - Visit [Google AI Studio](https://makersuite.google.com/)
-   - Sign in with your Google account
+1. Go to [Google AI Studio](https://makersuite.google.com/)
+2. Click "Get API Key"
+3. Create and copy your API key
 
-2. **Create an API Key**:
-   - Click on "Get API Key" in the left sidebar
-   - Click "Create API Key"
-   - Copy the generated API key (you'll use this as `GEMINI_API_KEY`)
+## ⚙️ Advanced Configuration
 
-3. **Enable the API** (if required):
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Search for "Generative Language API"
-   - Enable the API for your project
+### Custom Schedule
 
-> **Note:** The Gemini API has usage limits. The free tier should be sufficient for personal use, but check the [pricing page](https://ai.google.dev/pricing) for details.
+Edit `.github/workflows/tcs_check.yml` to change the schedule:
 
-### Installation
+```yaml
+on:
+  schedule:
+    - cron: '30 6,14 * * *'  # 12 PM & 8 PM IST
+```
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/miikkuu/tcs_joining_update_notifier.git
-   cd tcs_joining_update_notifier
-   ```
+### Local Development
 
-2. **Create and activate virtual environment**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. **Install dependencies**
+1. Clone the repository
+2. Install dependencies:
    ```bash
    pip install -r requirements.txt
+   playwright install
    ```
-
-4. **Install Chromium browser for Playwright**
-   ```bash
-   playwright install chromium
+3. Create `.env` file:
    ```
-   
-   This will only install the Chromium browser, keeping the installation lightweight.
-
-### Configuration
-
-1. **Create a `.env` file**
-   ```bash
-   cp .env.example .env
-   ```
-
-2. **Update `.env` with your credentials**
-   ```
-   # TCS Login Credentials (Email or CT/DT PIN)
    TCS_EMAIL=your_email@example.com
-   
-   # Gmail Credentials for OTP
    GMAIL_EMAIL=your_email@gmail.com
    GMAIL_APP_PASSWORD=your_app_password
-   
-   # Gemini API Key
    GEMINI_API_KEY=your_gemini_api_key
-   
-   # Application Settings
-   HEADLESS=True  # Set to False for visible browser
-   SCRIPT_TIMEOUT=100  # Script timeout in seconds
+   HEADLESS=True
+   SCRIPT_TIMEOUT=100
    ```
-
-## 🛠 Usage
-
-### Running the Script
-
-```bash
-python main.py
-```
-
-### Scheduling Automated Runs
-
-1. **Start the scheduler**
-   ```bash
-   nohup python schedule_tcs_check.py > /dev/null 2>&1 &
-   ```
-
-2. **Check if scheduler is running**
-   ```bash
-   ps aux | grep schedule_tcs_check.py
-   ```
-
-3. **View scheduler logs**
-   ```bash
-   tail -f logs/scheduler.log
-   ```
-
-### Modifying Schedule
-
-Edit the `RUN_TIMES` in `schedule_tcs_check.py` to change the schedule:
-
-```python
-# Scheduled times (24-hour format)
-RUN_TIMES = [
-    dt_time(9, 0),   # 9:00 AM
-    dt_time(17, 0),  # 5:00 PM
-]
-```
-
-Then restart the scheduler:
-```bash
-pkill -f schedule_tcs_check.py
-nohup python schedule_tcs_check.py > /dev/null 2>&1 &
-```
-
-## 📝 Logging
-
-The application maintains detailed logs in the `logs/` directory. Here's how to work with them:
-
-### Viewing Logs
-
-1. **List all log files**:
-   ```bash
-   ls -l logs/
-   ```
-
-2. **View logs in real-time**:
-   ```bash
-   # Main application logs
-   tail -f logs/main.log
-   
-   # CAPTCHA solving logs
-   tail -f logs/gemini_captcha_solver.log
-   
-   # Scheduler logs
-   tail -f logs/scheduler.log
-   ```
-
-### Log Files
-
-- `main.log`: Main application logs including login attempts and status checks
-- `gemini_captcha_solver.log`: Detailed logs for CAPTCHA solving process
-- `scheduler.log`: Scheduler execution logs and script run history
-
-### Log Rotation
-
-Logs are automatically rotated when they reach 5MB (2MB for CAPTCHA logs), keeping up to 3 backup files. Old logs are compressed and numbered (e.g., `main.log.1.gz`).
-
-### Restarting the Scheduler
-
-After making configuration changes, restart the scheduler:
-
-```bash
-# Stop existing scheduler
-pkill -f schedule_tcs_check.py
-
-# Start the scheduler
-nohup python schedule_tcs_check.py > /dev/null 2>&1 &
-
-# Verify it's running
-ps aux | grep schedule_tcs_check.py
-```
+4. Run: `python main.py`
 
 ## 🤝 Contributing
 
-We welcome contributions! Here's how you can help:
-
-1. **Fork the repository**
-2. **Create a feature branch**
-   ```bash
-   git checkout -b feature/amazing-feature
-   ```
-3. **Commit your changes**
-   ```bash
-   git commit -m 'Add some amazing feature'
-   ```
-4. **Push to the branch**
-   ```bash
-   git push origin feature/amazing-feature
-   ```
-5. **Open a Pull Request**
-
-### Development Setup
-
-1. Set up pre-commit hooks
-   ```bash
-   pre-commit install
-   ```
-
-2. Run tests
-   ```bash
-   python -m pytest
-   ```
+Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md).
 
 ## 📝 License
 
@@ -246,4 +113,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Playwright for browser automation
 - Google Gemini for CAPTCHA solving
-- Python community for awesome libraries
+- GitHub for free CI/CD with Actions
