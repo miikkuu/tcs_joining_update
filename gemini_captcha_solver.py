@@ -9,29 +9,9 @@ import logging
 import logging.handlers
 import os
 
-# Setup logger
-logger = logging.getLogger(__name__)
+# Setup logger - Use the root logger to prevent duplicate messages
+logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-
-# Create logs directory if it doesn't exist
-log_dir = Path('logs')
-log_dir.mkdir(exist_ok=True)
-
-# Create formatter
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-# Console handler
-console_handler = logging.StreamHandler()
-console_handler.setFormatter(formatter)
-logger.addHandler(console_handler)
-
-# File handler with rotation
-log_file = log_dir / 'gemini_captcha_solver.log'
-file_handler = logging.handlers.RotatingFileHandler(
-    log_file, maxBytes=2*1024*1024, backupCount=2, encoding='utf-8'
-)
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
 
 def setup_gemini(api_key):
     """

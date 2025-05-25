@@ -19,24 +19,37 @@ LOG_FILE = LOG_DIR / "scheduler.log"
 # Create logs directory if it doesn't exist
 LOG_DIR.mkdir(exist_ok=True, parents=True)
 
+def setup_logging():
+    """Configure logging with a single instance of handlers."""
+    # Clear any existing handlers from the root logger
+    root_logger = logging.getLogger()
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
+    
+    # Set the root logger level
+    root_logger.setLevel(logging.INFO)
+    
+    # Create formatter
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    
+    # Add console handler if not already present
+    if not any(isinstance(h, logging.StreamHandler) for h in root_logger.handlers):
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(formatter)
+        root_logger.addHandler(console_handler)
+    
+    # Add file handler if not already present
+    if not any(isinstance(h, logging.handlers.RotatingFileHandler) for h in root_logger.handlers):
+        file_handler = logging.handlers.RotatingFileHandler(
+            LOG_FILE, maxBytes=5*1024*1024, backupCount=3, encoding='utf-8'
+        )
+        file_handler.setFormatter(formatter)
+        root_logger.addHandler(file_handler)
+    
+    return root_logger.getChild('TCSScheduler')
+
 # Configure logging
-logger = logging.getLogger('TCSScheduler')
-logger.setLevel(logging.INFO)
-
-# Create formatter
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-# Console handler
-console_handler = logging.StreamHandler()
-console_handler.setFormatter(formatter)
-logger.addHandler(console_handler)
-
-# File handler with rotation
-file_handler = logging.handlers.RotatingFileHandler(
-    LOG_FILE, maxBytes=5*1024*1024, backupCount=3, encoding='utf-8'
-)
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
+logger = setup_logging()
 
 # Scheduled times (24-hour format)
 RUN_TIMES = [

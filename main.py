@@ -38,29 +38,41 @@ except (ValueError, TypeError):
     logging.warning(f"Invalid SCRIPT_TIMEOUT value: {script_timeout}, defaulting to {DEFAULT_SCRIPT_TIMEOUT}")
     SCRIPT_TIMEOUT = DEFAULT_SCRIPT_TIMEOUT
 
-# Configure logging with rotation
-log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+def setup_logging():
+    """Configure logging with a single instance of handlers."""
+    # Clear any existing handlers from the root logger
+    root_logger = logging.getLogger()
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
+    
+    # Set the root logger level
+    root_logger.setLevel(logging.INFO)
+    
+    # Create formatter
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    
+    # Add console handler if not already present
+    if not any(isinstance(h, logging.StreamHandler) for h in root_logger.handlers):
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(formatter)
+        root_logger.addHandler(console_handler)
+    
+    # Add file handler if not already present
+    log_dir = Path('logs')
+    log_dir.mkdir(exist_ok=True)
+    log_file = log_dir / 'main.log'
+    
+    if not any(isinstance(h, logging.handlers.RotatingFileHandler) for h in root_logger.handlers):
+        file_handler = logging.handlers.RotatingFileHandler(
+            log_file, maxBytes=5*1024*1024, backupCount=3, encoding='utf-8'
+        )
+        file_handler.setFormatter(formatter)
+        root_logger.addHandler(file_handler)
+    
+    return root_logger
 
-# Create logs directory if it doesn't exist
-log_dir = Path('logs')
-log_dir.mkdir(exist_ok=True)
-
-# Configure root logger
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-
-# Add console handler
-console_handler = logging.StreamHandler()
-console_handler.setFormatter(log_formatter)
-logger.addHandler(console_handler)
-
-# Add file handler with rotation
-log_file = log_dir / 'main.log'
-file_handler = logging.handlers.RotatingFileHandler(
-    log_file, maxBytes=5*1024*1024, backupCount=3, encoding='utf-8'
-)
-file_handler.setFormatter(log_formatter)
-logger.addHandler(file_handler)
+# Configure logging
+logger = setup_logging()
 
 # Configure Gemini API
 setup_gemini(GEMINI_API_KEY)

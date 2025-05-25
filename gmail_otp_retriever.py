@@ -21,15 +21,8 @@ from typing import Optional, Tuple
 # Load environment variables from .env file
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('gmail_otp_retriever.log'),
-        logging.StreamHandler()
-    ]
-)
+# Configure logging - use the root logger to prevent duplicates
+logger = logging.getLogger()
 
 class GmailOTPHandler:
     def __init__(self, email_address: str, app_password: str):

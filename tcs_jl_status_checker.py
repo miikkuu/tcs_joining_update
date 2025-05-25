@@ -16,17 +16,9 @@ load_dotenv()
 GMAIL_EMAIL = os.getenv('GMAIL_EMAIL')
 GMAIL_APP_PASSWORD = os.getenv('GMAIL_APP_PASSWORD')
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('tcs_jl_status_checker.log'),
-        logging.StreamHandler()
-    ]
-)
-
-logging.info("Starting JL status check after successful login.")
+# Configure logging - use the root logger to prevent duplicates
+logger = logging.getLogger()
+logger.info("Starting JL status check after successful login.")
 
 def send_email(subject, body, image_path=None):
     try:
