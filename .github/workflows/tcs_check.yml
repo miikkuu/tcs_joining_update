@@ -7,7 +7,6 @@ on:
   workflow_dispatch:
 
 env:
-  PYTHON_VERSION: '3.10'
   HEADLESS: 'True'
   SCRIPT_TIMEOUT: '100'
 
@@ -23,11 +22,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
     
     - name: Install Python dependencies
       run: |
