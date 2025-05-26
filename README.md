@@ -2,15 +2,20 @@
 
 🚀 **Automate Your TCS Joining Letter Check**
 
-Tired of constantly checking the TCS NextStep portal for your joining letter? This tool automates the entire process and notifies you the moment there's an update.
+Tired of constantly checking the TCS NextStep portal for your joining letter? This tool automates the entire process and notifies you with a mail twice a day  with your JL status and a screenshot of the status.
+Completely free to use and modify.
+and fully automated.
 
 ## ✨ Key Features
 
 - **Automated Portal Checks**: Runs on schedule without manual intervention
-- **Instant Notifications**: Get email alerts for status updates
+- **Instant Notifications**: Get email alerts for status updates twice daily at 12 PM and 8 PM IST
 - **Cloud-Based**: Runs on GitHub Actions (24/7 availability)
 - **Secure**: Uses GitHub Secrets to protect your credentials
 - **Open Source**: Free to use and modify
+- **Screenshots**: Captures screenshots of the portal for debugging and also sent as attachment in email
+- **Logs**: Captures logs of the portal for debugging
+- **Email Notifications**: Receives email notifications for status updates
 
 ## 🚀 Quick Start
 
@@ -55,9 +60,8 @@ Tired of constantly checking the TCS NextStep portal for your joining letter? Th
    - `GMAIL_APP_PASSWORD`: [Gmail App Password](#gmail-app-password)
    - `GEMINI_API_KEY`: [Google Gemini API Key](#gemini-api-key)
 
-### Gmail App Password
-
-1. Enable 2-Step Verification on your Google Account
+### Gmail App Password is not your gmail password , SEE to generate it:
+1. Enable 2-Step Verification on your Google Account if not already
 2. Generate an App Password:
    - Go to [App Passwords](https://myaccount.google.com/apppasswords)
    - Select "Mail" and "Other (Custom name)"

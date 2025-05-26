@@ -83,41 +83,61 @@ def ensure_screenshots_dir():
         os.makedirs(SCREENSHOT_DIR)
     return SCREENSHOT_DIR
 
-def take_screenshot(page, element_selector=None):
+def take_screenshot(page, prefix='screenshot', selector=None):
     """Take a screenshot of the current page or a specific element.
     
     Args:
         page: The Playwright page object
-        element_selector: Optional CSS selector for the element to screenshot
+        prefix (str): Prefix for the screenshot filename
+        selector (str, optional): CSS selector for the element to capture
+        
+    Returns:
+        str: Path to the saved screenshot, or None if failed
     """
     try:
         ensure_screenshots_dir()
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
         # Create a safe filename
-        safe_selector = ""
-        if element_selector:
-            safe_selector = "_" + "".join(c if c.isalnum() else "_" for c in element_selector)
-            safe_selector = safe_selector[:50]  # Limit filename length
+        filename = f"screenshots/screenshot_{timestamp}_{prefix}.png"
         
-        filename = f"screenshot_{timestamp}{safe_selector}.png"
-        screenshot_path = os.path.join(SCREENSHOT_DIR, filename)
-        
-        # Take the screenshot
-        if element_selector:
-            element = page.locator(element_selector).first
-            if element.is_visible():
-                element.screenshot(path=screenshot_path)
-                logging.info(f"Screenshot saved: {screenshot_path}")
-                return screenshot_path
+        if selector:
+            try:
+                # Wait for the element to be visible
+                element = page.locator(selector)
+                element.wait_for(state='visible', timeout=10000)
+                
+                # Take screenshot of just the element
+                element.screenshot(
+                    path=filename,
+                    timeout=10000,
+                    type='png',
+                    omit_background=True
+                )
+                logging.info(f"Element screenshot saved: {filename}")
+            except Exception as e:
+                logging.warning(f"Failed to capture element {selector}: {str(e)}")
+                # Fall back to full page screenshot
+                page.screenshot(
+                    path=filename,
+                    full_page=True,
+                    timeout=10000,
+                    type='png'
+                )
+                logging.info(f"Fell back to full page screenshot: {filename}")
+        else:
+            # Take full page screenshot
+            page.screenshot(
+                path=filename,
+                full_page=True,
+                timeout=10000,
+                type='png'
+            )
+            logging.info(f"Full page screenshot saved: {filename}")
             
-        # Fallback to full page screenshot
-        page.screenshot(path=screenshot_path, full_page=True)
-        logging.info(f"Full page screenshot saved: {screenshot_path}")
-        return screenshot_path
-        
+        return filename
     except Exception as e:
-        logging.error(f"Error taking screenshot: {str(e)}")
+        logging.error(f"Failed to take screenshot: {str(e)}")
         return None
 
 def wait_for_element_safely(page, selector, timeout=10000, state='visible'):
@@ -190,7 +210,7 @@ def find_and_click_next_button(page):
     take_screenshot(page, "next_button_error")
     return False
 
-def handle_otp_process(page, max_attempts=8, wait_time=3):
+def handle_otp_process(page, max_attempts=5, wait_time=5):
     """Handle the OTP retrieval and input process.
     
     Args:
@@ -396,16 +416,25 @@ def is_on_otp_page(page, timeout=5000):
         logging.debug(f"Error checking OTP page: {str(e)}")
         return False
 
-def handle_captcha(page, max_retries=3):
-    """Handle CAPTCHA solving with retry logic."""
+def handle_captcha(page, max_retries=2):
+    """Handle CAPTCHA solving with retry logic.
+    
+    Returns:
+        tuple: (success: bool, needs_refresh: bool)
+    """
     logging.info("Starting CAPTCHA solving process...")
+    
+    captcha_input_selector = 'input#userCaptcha[ng-model="userVO.userCaptcha"][name="userCaptcha"]'
     
     for attempt in range(1, max_retries + 1):
         try:
             logging.info(f"CAPTCHA attempt {attempt}/{max_retries}")
             
-            # Take new screenshot for CAPTCHA
-            captcha_screenshot = take_screenshot(page, 'captcha_image')
+            # Take screenshot of just the CAPTCHA element
+            captcha_selector = 'label.control-label.input-sm.ng-binding[style*="letter-spacing: 20px"]'
+            captcha_screenshot = take_screenshot(page, 'captcha_image', selector=captcha_selector)
+            
+            # If we couldn't take a screenshot at all, log and continue to next attempt
             if not captcha_screenshot:
                 logging.error("Failed to take CAPTCHA screenshot")
                 continue
@@ -422,7 +451,6 @@ def handle_captcha(page, max_retries=3):
             logging.info(f"CAPTCHA solved: {captcha_text}")
             
             # Fill CAPTCHA
-            captcha_input_selector = 'input#userCaptcha[ng-model="userVO.userCaptcha"][name="userCaptcha"]'
             if not wait_for_element_safely(page, captcha_input_selector, timeout=10000):
                 logging.error("CAPTCHA input field not found")
                 take_screenshot(page, "captcha_input_not_found")
@@ -446,156 +474,189 @@ def handle_captcha(page, max_retries=3):
             if not find_and_click_next_button(page):
                 logging.error("Failed to click Next button")
                 continue
-                
-            # Wait for either OTP page or stay on current page (indicating CAPTCHA failure)
+            
+            # Wait for navigation to complete or timeout
             try:
-                # Wait for navigation to complete or timeout
                 page.wait_for_load_state('networkidle', timeout=10000)
                 
                 # Check if we're on the OTP page
                 if is_on_otp_page(page):
                     logging.info("Successfully navigated to OTP page")
-                    return True
+                    return True, False
                     
-                # If we're not on OTP page, assume CAPTCHA failed
-                logging.warning("Still on CAPTCHA page after submission, will retry...")
+                # If we're not on OTP page, check if we need a refresh
+                logging.warning("Still on CAPTCHA page after submission")
                 take_screenshot(page, f"captcha_retry_{attempt}")
                 
-                # Clear the CAPTCHA field for next attempt
+                # Check if we need a full page refresh
+                if should_retry_with_refresh(page):
+                    logging.info("Page state indicates a refresh is needed")
+                    return False, True
+                    
+                # Otherwise, just clear the field and retry
+                logging.info("Retrying CAPTCHA...")
                 if wait_for_element_safely(page, captcha_input_selector, timeout=3000):
                     page.locator(captcha_input_selector).fill('')
-                
-                # Wait a bit before retrying
                 page.wait_for_timeout(2000)
                 
             except Exception as e:
                 logging.warning(f"Navigation check error: {str(e)}")
                 take_screenshot(page, f"navigation_error_attempt_{attempt}")
+                if "navigation" in str(e).lower() or "timeout" in str(e).lower():
+                    return False, True
                 continue
             
         except Exception as e:
             logging.error(f"Error in CAPTCHA attempt {attempt}: {str(e)}")
             take_screenshot(page, f"captcha_error_attempt_{attempt}")
+            if "navigation" in str(e).lower() or "timeout" in str(e).lower():
+                return False, True
+            continue
     
     logging.error(f"Failed to solve CAPTCHA after {max_retries} attempts")
-    return False
+    return False, False
+
+def should_retry_with_refresh(page, max_attempts=3):
+    """Check if we should retry with a page refresh or browser restart."""
+    # Check for common error conditions that indicate a refresh is needed
+    error_conditions = [
+        page.locator('div.error-message:has-text("session")').is_visible(),
+        page.locator('div.error-message:has-text("expired")').is_visible(),
+        page.locator('div.error-message:has-text("invalid")').is_visible(),
+        page.url == 'about:blank'  # Page got unloaded
+    ]
+    return any(error_conditions)
 
 def tcs_login_and_screenshot():
-    """Main function to handle TCS login process and JL status check."""
-    logging.info("Starting TCS login process...")
+    """Main function to handle TCS login process with retry logic."""
+    max_login_attempts = 3
+    attempt = 0
     
-    # Browser launch arguments
-    browser_args = [
-        '--no-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-blink-features=AutomationControlled',
-        '--window-size=1920,1080',
-        '--disable-infobars',
-        '--disable-notifications',
-    ]
-    
-    with sync_playwright() as p:
-        try:
-            # Launch browser
-            logging.info(f"Launching {'headless ' if HEADLESS else ''}browser...")
-            browser = p.chromium.launch(
-                headless=HEADLESS,
-                args=browser_args,
-                slow_mo=100 if not HEADLESS else 0  # Only slow down in non-headless mode
-            )
-            
-            # Create browser context
-            context = browser.new_context(
-                viewport={'width': 1366, 'height': 768},
-                user_agent=USER_AGENT,
-                locale='en-US',
-                timezone_id='Asia/Kolkata',
-                java_script_enabled=True,
-                ignore_https_errors=True
-            )
-            
-            # Set default timeout for all pages in this context
-            context.set_default_timeout(30000)  # 30 seconds
-            
-            # Create new page
-            page = context.new_page()
-            
-            # Step 1: Navigate to TCS NextStep portal
-            logging.info("Navigating to TCS NextStep portal...")
+    while attempt < max_login_attempts:
+        attempt += 1
+        logging.info(f"Starting login attempt {attempt}/{max_login_attempts}")
+        
+        with sync_playwright() as p:
             try:
-                page.goto('https://nextstep.tcs.com/campus/', timeout=60000)
-                logging.info("Page loaded successfully")
+                # Browser launch arguments
+                browser_args = [
+                    '--no-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-blink-features=AutomationControlled',
+                    '--window-size=1366,768',  # Reduced from 1920x1080 for better performance
+                    '--disable-infobars',
+                    '--disable-notifications',
+                ]
+                
+                # Launch browser
+                logging.info(f"Launching {'headless ' if HEADLESS else ''}browser...")
+                browser = p.chromium.launch(
+                    headless=HEADLESS,
+                    args=browser_args,
+                    slow_mo=100 if not HEADLESS else 0  # Only slow down in non-headless mode
+                )
+                
+                # Create browser context
+                context = browser.new_context(
+                    viewport={'width': 1280, 'height': 720},  # Slightly smaller than window size to ensure everything fits
+                    user_agent=USER_AGENT,
+                    locale='en-US',
+                    timezone_id='Asia/Kolkata',
+                    java_script_enabled=True,
+                    ignore_https_errors=True,
+                    device_scale_factor=1  # Set to 1 to avoid scaling
+                )
+                
+                # Set default timeout for all pages in this context
+                context.set_default_timeout(30000)  # 30 seconds
+                
+                # Create new page
+                page = context.new_page()
+                
+                # Navigate to TCS NextStep portal
+                logging.info("Navigating to TCS NextStep portal...")
+                try:
+                    page.goto('https://nextstep.tcs.com/campus/', timeout=60000)
+                    logging.info("Page loaded successfully")
+                except Exception as e:
+                    logging.error(f"Failed to load TCS portal: {str(e)}")
+                    take_screenshot(page, "page_load_failed")
+                    browser.close()
+                    continue
+                
+                # Click login button
+                login_button_selector = 'a.updatesClick:has-text("Login")'
+                if not wait_for_element_safely(page, login_button_selector):
+                    logging.error("Login button not found")
+                    take_screenshot(page, "login_button_not_found")
+                    browser.close()
+                    continue
+                
+                logging.info("Clicking login button...")
+                page.click(login_button_selector)
+                
+                # Wait for and fill email
+                email_selector = 'input.form-control.loginID[type="text"][name="loginID"]'
+                if not wait_for_element_safely(page, email_selector):
+                    logging.error("Email input field not found")
+                    take_screenshot(page, "email_input_not_found")
+                    browser.close()
+                    continue
+                
+                logging.info("Entering email address...")
+                email_input = page.locator(email_selector)
+                email_input.fill('')  # Clear any existing text
+                page.wait_for_timeout(200)
+                email_input.fill(TCS_EMAIL)
+                take_screenshot(page, "email_entered")
+                
+                # Handle CAPTCHA with refresh logic
+                logging.info("Starting CAPTCHA solving process...")
+                captcha_success, needs_refresh = handle_captcha(page)
+                
+                if needs_refresh:
+                    logging.info("Page refresh needed, restarting login process...")
+                    browser.close()
+                    continue  # Will retry from the beginning
+                    
+                if not captcha_success:
+                    logging.error("Failed to solve CAPTCHA")
+                    browser.close()
+                    return False
+                
+                # Handle OTP process
+                logging.info("Starting OTP process...")
+                if not handle_otp_process(page):
+                    logging.error("OTP process failed")
+                    browser.close()
+                    return False
+                
+                # Verify login and check JL status
+                login_status = check_login_result(page)
+                if login_status is False:
+                    logging.error("Login verification failed")
+                    browser.close()
+                    return False
+                
+                logging.info("Login successful! Proceeding to JL status check...")
+                success, status = tcs_jl_status_checker(page)
+                
+                if success:
+                    logging.info(f"Status check completed. Status: {status}")
+                else:
+                    logging.error(f"Status check failed: {status}")
+                
+                browser.close()
+                return success
+                
             except Exception as e:
-                logging.error(f"Failed to load TCS portal: {str(e)}")
-                take_screenshot(page, "page_load_failed")
-                return False
-            
-            # Step 2: Click login button
-            login_button_selector = 'a.updatesClick:has-text("Login")'
-            if not wait_for_element_safely(page, login_button_selector):
-                logging.error("Login button not found")
-                take_screenshot(page, "login_button_not_found")
-                return False
-            
-            logging.info("Clicking login button...")
-            page.click(login_button_selector)
-            
-            # Step 3: Wait for and fill email
-            email_selector = 'input.form-control.loginID[type="text"][name="loginID"]'
-            if not wait_for_element_safely(page, email_selector):
-                logging.error("Email input field not found")
-                take_screenshot(page, "email_input_not_found")
-                return False
-            
-            logging.info("Entering email address...")
-            email_input = page.locator(email_selector)
-            email_input.fill('')  # Clear any existing text
-            page.wait_for_timeout(200)
-            email_input.fill(TCS_EMAIL)
-            take_screenshot(page, "email_entered")
-            
-            # Step 4: Handle CAPTCHA with retry logic
-            logging.info("Starting CAPTCHA solving process...")
-            captcha_success = handle_captcha(page)
-            
-            if not captcha_success:
-                logging.error("Failed to solve CAPTCHA after multiple attempts")
-                return False
-            
-            # Step 5: Handle OTP process
-            logging.info("Starting OTP process...")
-            if not handle_otp_process(page):
-                logging.error("OTP process failed")
-                return False
-            
-            # Step 6: Verify login and check JL status
-            login_status = check_login_result(page)
-            if login_status is False:
-                logging.error("Login verification failed")
-                return False
-            
-            logging.info("Login successful! Proceeding to JL status check...")
-            success, status = tcs_jl_status_checker(page)
-            
-            if success:
-                logging.info(f"Status check completed. Status: {status}")
-            else:
-                logging.error(f"Status check failed: {status}")
-            
-            return success
-            
-        except Exception as e:
-            logging.error(f"An unexpected error occurred: {str(e)}", exc_info=True)
-            take_screenshot(page, "unexpected_error")
-            return False
-            
-        finally:
-            # Ensure browser is closed properly
-            try:
+                logging.error(f"Error in login attempt {attempt}: {str(e)}")
                 if 'browser' in locals() and browser:
                     browser.close()
-            except Exception as e:
-                logging.error(f"Error closing browser: {str(e)}")
+                continue
+                
+    logging.error(f"Failed to login after {max_login_attempts} attempts")
+    return False
 
 def timeout_handler(signum, frame):
     """Handle script timeout by logging and exiting gracefully.
