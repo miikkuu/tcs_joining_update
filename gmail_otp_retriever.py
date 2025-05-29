@@ -9,10 +9,6 @@ import re
 import time
 import os
 import logging
-import html
-import quopri
-import base64
-import chardet
 from datetime import datetime, timedelta
 from email.header import decode_header
 from dotenv import load_dotenv
@@ -59,7 +55,7 @@ class GmailOTPHandler:
                 logging.error(f"Error disconnecting from Gmail: {str(e)}")
     
     def get_latest_otp(self, sender: str = None, subject_contains: str = None, 
-                      wait_time: int = 5, max_attempts: int = 10) -> Tuple[Optional[str], Optional[str]]:
+                       wait_time: int = 5, max_attempts: int = 10) -> Tuple[Optional[str], Optional[str]]:
         """
         Retrieve the latest OTP from Gmail.
         
@@ -77,37 +73,57 @@ class GmailOTPHandler:
                 return None, None
                 
         try:
+            logging.info("Selecting inbox...")
             # Select the inbox
             self.mail.select('inbox')
+            logging.info("Inbox selected. Searching for unseen emails...")
             
-            # Search for unseen emails first
-            status, messages = self.mail.search(None, 'UNSEEN')
+            # Construct the search criteria
+            search_criteria = ['UNSEEN']
+            if sender:
+                search_criteria.append(f'FROM "{sender}"')
+            if subject_contains:
+                search_criteria.append(f'SUBJECT "{subject_contains}"')
+
+            logging.info(f"Searching for emails with criteria: {' '.join(search_criteria)}")
+            status, messages = self.mail.search(None, *search_criteria)
+            logging.info(f"Search for emails completed. Status: {status}, Messages: {messages[0]}")
             
-            # If no unseen emails, wait and try again
+            # If no emails found with specific criteria, wait and try again
             attempt = 0
             while (not messages[0] or len(messages[0].split()) == 0) and attempt < max_attempts:
-                logging.info(f"No new emails found. Waiting {wait_time} seconds... (Attempt {attempt + 1}/{max_attempts})")
+                logging.info(f"No emails found with specific criteria. Waiting {wait_time} seconds... (Attempt {attempt + 1}/{max_attempts})")
                 time.sleep(wait_time)
-                status, messages = self.mail.search(None, 'UNSEEN')
+                status, messages = self.mail.search(None, *search_criteria)
+                logging.info(f"Re-search for emails completed. Status: {status}, Messages: {messages[0]}")
                 attempt += 1
             
             if not messages[0]:
-                logging.warning("No new emails found after maximum attempts")
+                logging.warning("No emails found matching criteria after maximum attempts")
                 return None, None
                 
             # Get all email IDs and check from latest to oldest
             email_ids = messages[0].split()
+            # Limit to a reasonable number of recent emails to process, e.g., 10
+            # This is a safeguard in case the IMAP search returns too many results
+            max_emails_to_process = 10
+            email_ids_to_process = email_ids[-max_emails_to_process:] # Get the latest N emails
+            logging.info(f"Found {len(email_ids)} email IDs matching criteria. Processing latest {len(email_ids_to_process)}.")
             
-            for email_id in reversed(email_ids):  # Check from latest to oldest
+            for email_id in reversed(email_ids_to_process):  # Check from latest to oldest
                 try:
+                    logging.info(f"Fetching email ID: {email_id}")
                     # Fetch the email
                     status, msg_data = self.mail.fetch(email_id, '(RFC822)')
+                    logging.info(f"Email fetch completed for ID {email_id}. Status: {status}")
                     
                     if status != 'OK':
+                        logging.warning(f"Failed to fetch email ID {email_id}. Status: {status}")
                         continue
                         
                     # Parse the email
                     email_message = email.message_from_bytes(msg_data[0][1])
+                    logging.info(f"Email ID {email_id} parsed.")
                     
                     # Check sender if filter is provided
                     if sender and sender.lower() not in email_message.get('From', '').lower():
@@ -208,8 +224,8 @@ class GmailOTPHandler:
             return None, None
 
 def get_otp_from_gmail(email_address: str, app_password: str, 
-                      sender: str = None, subject_contains: str = None,
-                      wait_time: int = 5, max_attempts: int = 10) -> Tuple[Optional[str], Optional[str]]:
+                       sender: str = None, subject_contains: str = None,
+                       wait_time: int = 0, max_attempts: int = 10) -> Tuple[Optional[str], Optional[str]]:
     """
     Helper function to get OTP from Gmail.
     

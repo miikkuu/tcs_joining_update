@@ -18,7 +18,7 @@ from tcs_jl_status_checker import tcs_jl_status_checker
 load_dotenv()
 
 # Constants
-DEFAULT_SCRIPT_TIMEOUT = 80
+DEFAULT_SCRIPT_TIMEOUT = 120
 SCREENSHOT_DIR = 'screenshots'
 LOG_FILE = 'main.log'
 USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -244,33 +244,22 @@ def handle_otp_process(page, max_attempts=5, wait_time=5):
         # Wait for OTP email
         logging.info(f"Waiting for OTP email (will check {max_attempts} times with {wait_time}s intervals)...")
         
-        # Initial wait to ensure email has time to arrive
-        logging.info("Waiting 20 seconds for OTP email to arrive...")
+        logging.info("Waiting for OTP email (will check internally for up to 20 seconds)...")
         time.sleep(20)
-        
-        # Get OTP from Gmail
-        otp = None
-        for attempt in range(1, max_attempts + 1):
-            logging.info(f"Attempt {attempt}/{max_attempts}: Retrieving OTP from Gmail...")
-            otp, _ = get_otp_from_gmail(
-                email_address=GMAIL_EMAIL,
-                app_password=GMAIL_APP_PASSWORD,
-                subject_contains="TCS NextStep",
-                wait_time=1,  # Shorter wait time since we're retrying
-                max_attempts=1
-            )
-            
-            if otp and len(otp) >= 4:
-                logging.info("OTP retrieved successfully")
-                break
-                
-            if attempt < max_attempts:
-                time.sleep(wait_time)
+        # Get OTP from Gmail with internal retries
+        otp, _ = get_otp_from_gmail(
+            email_address=GMAIL_EMAIL,
+            app_password=GMAIL_APP_PASSWORD,
+            subject_contains="TCS NextStep: Login Email ID Verification", # Exact subject as per user feedback
+            sender="recruitment.entrylevel@tcs.com", # Exact sender as per user feedback
+            wait_time=10,  # Wait 10 seconds between internal checks
+            max_attempts=2 # Try up to 2 times, total 20 seconds of checking
+        )
         
         if not otp or len(otp) < 4:
-            logging.error(f"Failed to retrieve valid OTP. Received: {otp}")
+            logging.error(f"Failed to retrieve valid OTP. Received: {otp}. Signalling for full restart.")
             take_screenshot(page, "otp_retrieval_failed")
-            return False
+            return None # Signal for a full restart
         
         # Fill OTP
         otp_input = page.locator(otp_input_selector)
@@ -626,8 +615,13 @@ def tcs_login_and_screenshot():
                 
                 # Handle OTP process
                 logging.info("Starting OTP process...")
-                if not handle_otp_process(page):
-                    logging.error("OTP process failed")
+                otp_result = handle_otp_process(page)
+                if otp_result is None:
+                    logging.warning("OTP process requires a full restart.")
+                    browser.close()
+                    continue # This will trigger the next attempt in the while loop
+                elif not otp_result:
+                    logging.error("OTP process failed (non-restartable error).")
                     browser.close()
                     return False
                 
