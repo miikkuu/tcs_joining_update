@@ -55,8 +55,6 @@ def handle_otp_process(page, max_attempts=5, wait_time=5):
         otp, _ = get_otp_from_gmail(
             email_address=GMAIL_EMAIL,
             app_password=GMAIL_APP_PASSWORD,
-            subject_contains="TCS NextStep: Login Email ID Verification",
-            sender="recruitment.entrylevel@tcs.com",
             wait_time=10,
             max_attempts=2
         )
@@ -132,7 +130,6 @@ def check_login_result(page, timeout=10000):
         bool: True if login successful, False if error detected, None if indeterminate
     """
     try:
-        # Wait for page to load
         page.wait_for_load_state('networkidle', timeout=timeout)
         
         # Common error selectors
@@ -412,6 +409,11 @@ def tcs_login_and_screenshot():
                     if browser:
                         browser.close()
                     return False
+                elif login_status is None: # Added this condition
+                    logging.warning("Could not determine login status, restarting login process.")
+                    if browser:
+                        browser.close()
+                    continue # This will trigger the next attempt in the while loop
                 
                 logging.info("Login successful! Proceeding to JL status check...")
                 success, status = tcs_jl_status_checker(page)
