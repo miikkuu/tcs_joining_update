@@ -236,7 +236,7 @@ def handle_otp_process(page, max_attempts=5, wait_time=5):
             page.wait_for_function('''() => {
                 const input = document.querySelector('input#loginOtp');
                 return input && !input.disabled;
-            }''', timeout=30000)
+            }''', timeout=20000)
             logging.info("OTP input field is ready")
         except PlaywrightTimeoutError:
             logging.warning("OTP input may still be disabled, proceeding anyway...")
@@ -244,16 +244,16 @@ def handle_otp_process(page, max_attempts=5, wait_time=5):
         # Wait for OTP email
         logging.info(f"Waiting for OTP email (will check {max_attempts} times with {wait_time}s intervals)...")
         
-        logging.info("Waiting for OTP email (will check internally for up to 20 seconds)...")
-        time.sleep(20)
+        logging.info("Waiting for OTP email (will check internally for up to 30 seconds)...")
+        time.sleep(30)
         # Get OTP from Gmail with internal retries
         otp, _ = get_otp_from_gmail(
             email_address=GMAIL_EMAIL,
             app_password=GMAIL_APP_PASSWORD,
             subject_contains="TCS NextStep: Login Email ID Verification", # Exact subject as per user feedback
             sender="recruitment.entrylevel@tcs.com", # Exact sender as per user feedback
-            wait_time=10,  # Wait 10 seconds between internal checks
-            max_attempts=2 # Try up to 2 times, total 20 seconds of checking
+            wait_time=5,  # Wait 5 seconds between internal checks
+            max_attempts=1 # Try up to 1 times, total 5 seconds of checking
         )
         
         if not otp or len(otp) < 4:
